@@ -1,45 +1,40 @@
-// Scanline Polygon fill Algorithm
+// Scanline Polygon fill Algorithm code found at https://www.geeksforgeeks.org/scan-line-polygon-filling-using-opengl-c/
+// converted to Raylib and mucked about with by me (Les Farrell)
 
 #include <stdio.h>
 #include <math.h>
 #include <raylib.h>
 
-#define MaxHeight 800
-#define maxVer 1000
-
+#define PolygonFill_MaxHeight 800
+#define PolygonFill_MaxVertices 1000
 
 // Start from lower left corner
 typedef struct PolygonFill_EdgeBucket
 {
-    int ymax;      		// max y-coordinate of edge
-    float xofymin; 		// x-coordinate of lowest edge point updated only in aet
+    int ymax;      // max y-coordinate of edge
+    float xofymin; // x-coordinate of lowest edge point updated only in aet
     float slopeinverse;
 } PolygonFill_EdgeBucket;
-
 
 typedef struct PolygonFill_edgetabletup
 {
     // The array will give the scanline number
     // The edge table (ET) with edges entries sorted in increasing y and x of the lower end
     int countPolygonFill_EdgeBucket; // No. of PolygonFill_EdgeBuckets
-    PolygonFill_EdgeBucket buckets[maxVer];
+    PolygonFill_EdgeBucket buckets[PolygonFill_MaxVertices];
 } PolygonFill_PolygonFill_edgetabletuple;
 
-
-PolygonFill_PolygonFill_edgetabletuple EdgeTable[MaxHeight], ActiveEdgeTuple;
-
-
+PolygonFill_PolygonFill_edgetabletuple EdgeTable[PolygonFill_MaxHeight], ActiveEdgeTuple;
 
 // Scanline Function
 void PolygonFill_InitEdgeTable()
 {
-    for (int i = 0; i < MaxHeight; i++)
+    for (int i = 0; i < PolygonFill_MaxHeight; i++)
     {
         EdgeTable[i].countPolygonFill_EdgeBucket = 0;
     }
     ActiveEdgeTuple.countPolygonFill_EdgeBucket = 0;
 }
-
 
 /* Function to sort an array using insertion sort*/
 void PolygonFill_InsertionSort(PolygonFill_PolygonFill_edgetabletuple *ett)
@@ -54,7 +49,7 @@ void PolygonFill_InsertionSort(PolygonFill_PolygonFill_edgetabletuple *ett)
         temp.slopeinverse = ett->buckets[i].slopeinverse;
         j = i - 1;
 
-		while ((temp.xofymin < ett->buckets[j].xofymin) && (j >= 0))
+        while ((temp.xofymin < ett->buckets[j].xofymin) && (j >= 0))
         {
             ett->buckets[j + 1].ymax = ett->buckets[j].ymax;
             ett->buckets[j + 1].xofymin = ett->buckets[j].xofymin;
@@ -67,14 +62,12 @@ void PolygonFill_InsertionSort(PolygonFill_PolygonFill_edgetabletuple *ett)
     }
 }
 
-
-
 void PolygonFill_StoreEdgeInTuple(PolygonFill_PolygonFill_edgetabletuple *receiver, int ym, int xm, float slopInv)
 {
     // Both used for edgetable and active edge table..
     // The edge tuple sorted in increasing ymax and x of the lower end.
     (receiver->buckets[(receiver)->countPolygonFill_EdgeBucket]).ymax = ym;
-    (receiver->buckets[(receiver)->countPolygonFill_EdgeBucket]).xofymin = (float) xm;
+    (receiver->buckets[(receiver)->countPolygonFill_EdgeBucket]).xofymin = (float)xm;
     (receiver->buckets[(receiver)->countPolygonFill_EdgeBucket]).slopeinverse = slopInv;
 
     // Sort the buckets
@@ -82,8 +75,6 @@ void PolygonFill_StoreEdgeInTuple(PolygonFill_PolygonFill_edgetabletuple *receiv
 
     (receiver->countPolygonFill_EdgeBucket)++;
 }
-
-
 
 void PolygonFill_StoreEdgeInTable(int x1, int y1, int x2, int y2)
 {
@@ -102,7 +93,7 @@ void PolygonFill_StoreEdgeInTable(int x1, int y1, int x2, int y2)
         if (y2 == y1)
             return;
 
-        minv = (float) 1.0 / m;
+        minv = (float)1.0 / m;
     }
 
     if (y1 > y2)
@@ -122,8 +113,6 @@ void PolygonFill_StoreEdgeInTable(int x1, int y1, int x2, int y2)
     PolygonFill_StoreEdgeInTuple(&EdgeTable[scanline], ymaxTS, xwithyminTS, minv);
 }
 
-
-
 void PolygonFill_RemoveEdgeByYmax(PolygonFill_PolygonFill_edgetabletuple *Tup, int yy)
 {
     for (int i = 0; i < Tup->countPolygonFill_EdgeBucket; i++)
@@ -142,8 +131,6 @@ void PolygonFill_RemoveEdgeByYmax(PolygonFill_PolygonFill_edgetabletuple *Tup, i
     }
 }
 
-
-
 void PolygonFill_UpdateXbySlopeinv(PolygonFill_PolygonFill_edgetabletuple *Tup)
 {
     for (int i = 0; i < Tup->countPolygonFill_EdgeBucket; i++)
@@ -152,8 +139,6 @@ void PolygonFill_UpdateXbySlopeinv(PolygonFill_PolygonFill_edgetabletuple *Tup)
     }
 }
 
-
-
 void PolygonFill_ScanlineFill()
 {
     /* Follow the following rules: 
@@ -161,11 +146,11 @@ void PolygonFill_ScanlineFill()
 	2. Horizontal edges: Drawn either on the bottom or on the top. 
 	3. Vertices: If local max or min, then count twice, else count once. 
 	4. Either vertices at local minima or at local maxima are drawn.*/
-    int i = 0, j = 0, x1 = 0, ymax1 = 0, x2 = 0, ymax2 =0, FillFlag = 0, coordCount = 0;
+    int i = 0, j = 0, x1 = 0, ymax1 = 0, x2 = 0, ymax2 = 0, FillFlag = 0, coordCount = 0;
 
     // we will start from scanline 0;
     // Repeat until last scanline:
-    for (i = 0; i < MaxHeight; i++) //4. Increment y by 1 (next scan line)
+    for (i = 0; i < PolygonFill_MaxHeight; i++) //4. Increment y by 1 (next scan line)
     {
 
         // 1. Move from ET bucket y to the
@@ -173,7 +158,7 @@ void PolygonFill_ScanlineFill()
         for (j = 0; j < EdgeTable[i].countPolygonFill_EdgeBucket; j++)
         {
             PolygonFill_StoreEdgeInTuple(&ActiveEdgeTuple, EdgeTable[i].buckets[j].ymax, EdgeTable[i].buckets[j].xofymin,
-                             EdgeTable[i].buckets[j].slopeinverse);
+                                         EdgeTable[i].buckets[j].slopeinverse);
         }
 
         // 2. Remove from AET those edges for which y=ymax (not involved in next scan line)
@@ -182,14 +167,13 @@ void PolygonFill_ScanlineFill()
         // sort AET (remember: ET is presorted)
         PolygonFill_InsertionSort(&ActiveEdgeTuple);
 
-
         // 3. Fill lines on scan line y by using pairs of x-coords from AET
         j = 0;
         x1 = 0;
         x2 = 0;
         ymax1 = 0;
         ymax2 = 0;
-		FillFlag = 0;
+        FillFlag = 0;
         coordCount = 0;
         while (j < ActiveEdgeTuple.countPolygonFill_EdgeBucket)
         {
@@ -221,7 +205,7 @@ void PolygonFill_ScanlineFill()
             }
             else
             {
-                x2 = (int) ActiveEdgeTuple.buckets[j].xofymin;
+                x2 = (int)ActiveEdgeTuple.buckets[j].xofymin;
                 ymax2 = ActiveEdgeTuple.buckets[j].ymax;
 
                 FillFlag = 0;
@@ -229,7 +213,7 @@ void PolygonFill_ScanlineFill()
                 // Checking for intersection...
                 if (x1 == x2)
                 {
-                    /* Three cases can arive- 
+                    /* Three cases can arise - 
 					1. Lines are towards top of the intersection 
 					2. Lines are towards bottom 
 					3. One line is towards top and other is towards bottom 
@@ -253,7 +237,7 @@ void PolygonFill_ScanlineFill()
 
                 if (FillFlag)
                 {
-				    DrawLine(x1, i, x2, i, GRAY );
+                    DrawLine(x1, i, x2, i, GRAY);
                 }
             }
 
@@ -265,10 +249,9 @@ void PolygonFill_ScanlineFill()
     }
 }
 
-
 void PolygonFill_DrawPolyDino()
 {
-	FILE *fp;
+    FILE *fp;
 
     int count = 0, x1 = 0, y1 = 0, x2 = 0, y2 = 0;
 
@@ -290,34 +273,32 @@ void PolygonFill_DrawPolyDino()
         }
         else
         {
-            fscanf(fp, "%d,%d", &x2, &y2);          
-			DrawLine(x1, y1, x2, y2, GRAY );
-			PolygonFill_StoreEdgeInTable(x1, 800-y1, x2, 800-y2); //storage of edges in edge table.
-
+            fscanf(fp, "%d,%d", &x2, &y2);
+            PolygonFill_StoreEdgeInTable(x1, PolygonFill_MaxHeight - y1, x2, PolygonFill_MaxHeight - y2); //storage of edges in edge table.
         }
     }
     fclose(fp);
 }
 
-
-void main(int argc, char **argv)
+int main(int argc, char **argv)
 {
-	InitWindow(800, 600, "Polygon Filler");
+    InitWindow(800, 600, "Polygon Filler");
 
     PolygonFill_InitEdgeTable();
-	
+
     PolygonFill_DrawPolyDino();
-    
- 	while (!WindowShouldClose())
-	{
-		BeginDrawing();
 
-			ClearBackground(RAYWHITE);
+    while (!WindowShouldClose())
+    {
+        BeginDrawing();
 
-			PolygonFill_ScanlineFill();
+        ClearBackground(RAYWHITE);
 
-		EndDrawing();
-	}
-	CloseWindow();
+        PolygonFill_ScanlineFill();
+
+        EndDrawing();
+    }
+    CloseWindow();
+
+    return 0;
 }
-
